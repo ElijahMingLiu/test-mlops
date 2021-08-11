@@ -96,3 +96,5 @@ train_my_xgboost(train, code_files, script, hyperparameters=hyperparameters,
                  role=role,
                  prefix=prefix
                 )
+
+print("Training Finished!")
