@@ -59,7 +59,7 @@ def train_my_xgboost(train, code_files, script, hyperparameters={}, role=None, p
         '337058716437.dkr.ecr.ca-central-1.amazonaws.com/xgboost_001',
         role,
         train_instance_count=1,
-        train_instance_type='ml.m5.xlarge',
+        train_instance_type=train_instance_type,
         # train_instance_type="local",
         base_job_name=prefix,
         hyperparameters=hyperparameters,
@@ -78,7 +78,7 @@ script = 'train.py'
 prefix = 'test-mlops'
 
 hyperparameters = {
-                     "sagemaker_program": "train.py",
+                     "sagemaker_program": script,
                      "hp1": {'xgboost':'123',
                              'test':'ttt'
                             },
