@@ -6,7 +6,7 @@ import sys
 import time
 import pandas as pd
 
-from utils import print_files_in_path, save_model_artifacts
+# from utils import print_files_in_path, save_model_artifacts
 
 # 数据被挂载到 /opt/ml/input/data/train/
 
