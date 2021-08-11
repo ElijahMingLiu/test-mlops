@@ -1,3 +1,10 @@
+import boto3
+import sagemaker
+from sagemaker import get_execution_role
+import json
+import tarfile
+import os
+
 def train_my_xgboost(train, code_files, script, hyperparameters={}, role=None, prefix=None, bucket=None, train_instance_type='ml.m5.xlarge'):
     
     # 创建tar.gz文件
