@@ -17,7 +17,7 @@ commit_id = commit_id[0:7]
 
 timestamp = time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime())
 job_name = stack_name + "-" + commit_id + "-" + timestamp
-
+'''
 # Getting the data
 datasets.MNIST(
     "data",
@@ -32,7 +32,7 @@ inputs = sagemaker_session.upload_data(
     path="data", bucket=bucket, key_prefix=prefix + "/MNIST"
 )
 print(f"input spec (in this case, just an S3 path): {inputs}")
-
+'''
 
 estimator = PyTorch(
     entry_point="code/mnist.py",
@@ -51,7 +51,7 @@ estimator = PyTorch(
 
 print(f"Training job name: {job_name}")
 
-estimator.fit({"training": "s3://" + bucket + "/" + prefix}, job_name=job_name)
+estimator.fit({"training": "s3://ca-central-sagemaker-test/sagemaker/pytorch-mnist/MNIST"}, job_name=job_name)
 
 # Deploy the model
 endpoint_name = f"{stack_name}-{commit_id[:7]}"
