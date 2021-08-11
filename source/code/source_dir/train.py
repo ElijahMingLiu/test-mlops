@@ -11,9 +11,9 @@ import pandas as pd
 # 数据被挂载到 /opt/ml/input/data/train/
 
 def train():
-    print('zzzzwwww')
-    df = pd.read_csv('/opt/ml/input/data/666/dummy.csv')
-    print(df)
+    print('Finally!! Run!!!')
+    # df = pd.read_csv('/opt/ml/input/data/666/dummy.csv')
+    # print(df)
 
 if __name__ == "__main__":
     train()
