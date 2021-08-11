@@ -1,4 +1,4 @@
-boto3==1.14.12
+boto3==1.17.100
 numpy==1.19.
 sagemaker==2.45.0
 torch-vision==0.1.6.dev0
