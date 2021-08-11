@@ -1,60 +1,104 @@
-import time
-import sys
-import sagemaker
-
-from sagemaker.pytorch import PyTorch
-from torchvision import datasets, transforms
-
-
-prefix = "sagemaker/pytorch-mnist"
-sagemaker_session = sagemaker.Session()
-
-role = sys.argv[1]
-bucket = sys.argv[2]
-stack_name = sys.argv[3]
-commit_id = sys.argv[4]
-commit_id = commit_id[0:7]
-
-timestamp = time.strftime("%Y-%m-%d-%H-%M-%S", time.gmtime())
-job_name = stack_name + "-" + commit_id + "-" + timestamp
-'''
-# Getting the data
-datasets.MNIST(
-    "data",
-    download=True,
-    transform=transforms.Compose(
-        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
-    ),
-)
-
-# Uploading the data to S3
-inputs = sagemaker_session.upload_data(
-    path="data", bucket=bucket, key_prefix=prefix + "/MNIST"
-)
-print(f"input spec (in this case, just an S3 path): {inputs}")
-'''
-
-estimator = PyTorch(
-    entry_point="code/mnist.py",
-    # source_dir="code",
-    role=role,
-    framework_version="1.4.0",
-    instance_count=2,
-    #instance_type="ml.p3.2xlarge",
-    instance_type="ml.m4.xlarge",
-    py_version="py3",
-    # use_spot_instances=True,  # Use a spot instance
-    # max_run=300,  # Max training time
-    # max_wait=600,  # Max training time + spot waiting time
-    hyperparameters={"epochs": 20, "backend": "gloo"},
-)
-
-print(f"Training job name: {job_name}")
-
-estimator.fit({"training": "s3://ca-central-sagemaker-test/sagemaker/pytorch-mnist/MNIST"}, job_name=job_name)
 
 # Deploy the model
-endpoint_name = f"{stack_name}-{commit_id[:7]}"
-predictor = estimator.deploy(
-    initial_instance_count=1, instance_type="ml.m4.xlarge", endpoint_name=endpoint_name
-)
+# endpoint_name = f"{stack_name}-{commit_id[:7]}"
+# predictor = estimator.deploy(
+#     initial_instance_count=1, instance_type="ml.m4.xlarge", endpoint_name=endpoint_name
+# )
+
+import boto3
+import sagemaker
+from sagemaker import get_execution_role
+import json
+import tarfile
+import os
+
+def train_my_xgboost(train, code_files, script, hyperparameters={}, role=None, prefix=None, bucket=None, train_instance_type='ml.m5.xlarge'):
+    
+    # 创建tar.gz文件
+    def create_tar_file(source_files, target=None):
+        if target:
+            filename = target
+        else:
+            _, filename = tempfile.mkstemp()
+
+        with tarfile.open(filename, mode="w:gz") as t:
+            for sf in source_files:
+                # Add all files from the directory into the root of the directory structure of the tar
+                t.add(sf, arcname=os.path.basename(sf))
+        return filename
+    # 超参数encode成json
+    def json_encode_hyperparameters(hyperparameters):
+        return {str(k): json.dumps(v) for (k, v) in hyperparameters.items()}
+    
+    
+    sagemaker_session = sagemaker.session.Session()
+    
+    # 取得默认的bucket
+    if not bucket:
+        print('Using default bucket ', end='')
+        bucket = sagemaker_session.default_bucket()
+        print(bucket)
+    
+    if not code_files[0].startswith('s3://'):
+        print('Uploading code to S3:', end='')
+        # 把代码文件打爆
+        create_tar_file(code_files, "sourcedir.tar.gz")
+        # 上传代码文件
+        sources = sagemaker_session.upload_data("sourcedir.tar.gz", bucket, prefix + "/code")
+        print(sources)
+    else:
+        sources = code_files
+    
+    # 把代码的s3位置放进超参数
+    hyperparameters['sagemaker_submit_directory']= sources
+    
+    # encode超参数
+    hyperparameters = json_encode_hyperparameters(
+        hyperparameters
+    )
+    
+    if not role:
+        print('Getting default Role', end='')
+        role = get_execution_role()
+        print(role)
+    
+    # 放入如下内容
+    # docker ecr链接
+    # role
+    # 同时训练的数量
+    # 机器类型
+    # training jobs 前缀
+    # 超参数
+    est = sagemaker.estimator.Estimator(
+        '337058716437.dkr.ecr.ca-central-1.amazonaws.com/xgboost_001',
+        role,
+        train_instance_count=1,
+        train_instance_type=train_instance_type,
+        # train_instance_type="local",
+        base_job_name=prefix,
+        hyperparameters=hyperparameters,
+    )
+    
+    # 这个可以做映射的文件，假如有666，那么文件会被挂载到/opt/ml/input/data/666/
+    est.fit({"train": train})
+
+train = 's3://sagemaker-ca-central-1-337058716437/script-mode-container-2/train/'
+script = 'train.py'
+
+role = 'arn:aws:iam::337058716437:role/SageMaker-Execution'
+code_files = ["code/source_dir/train.py"]
+script = 'train.py'
+prefix = 'test-mlops'
+
+hyperparameters = {
+                     "sagemaker_program": "train.py",
+                     "hp1": {'xgboost':'123',
+                             'test':'ttt'
+                            },
+                     "hp2": 300,
+                     "hp3": 0.001,
+                   }
+train_my_xgboost(train, code_files, script, hyperparameters=hyperparameters,
+                 role=role,
+                 prefix=prefix
+                )
