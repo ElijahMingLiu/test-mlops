@@ -1,17 +1,3 @@
-
-# Deploy the model
-# endpoint_name = f"{stack_name}-{commit_id[:7]}"
-# predictor = estimator.deploy(
-#     initial_instance_count=1, instance_type="ml.m4.xlarge", endpoint_name=endpoint_name
-# )
-
-import boto3
-import sagemaker
-from sagemaker import get_execution_role
-import json
-import tarfile
-import os
-
 def train_my_xgboost(train, code_files, script, hyperparameters={}, role=None, prefix=None, bucket=None, train_instance_type='ml.m5.xlarge'):
     
     # 创建tar.gz文件
@@ -73,7 +59,7 @@ def train_my_xgboost(train, code_files, script, hyperparameters={}, role=None, p
         '337058716437.dkr.ecr.ca-central-1.amazonaws.com/xgboost_001',
         role,
         train_instance_count=1,
-        train_instance_type=train_instance_type,
+        train_instance_type='ml.m5.xlarge',
         # train_instance_type="local",
         base_job_name=prefix,
         hyperparameters=hyperparameters,
@@ -81,7 +67,8 @@ def train_my_xgboost(train, code_files, script, hyperparameters={}, role=None, p
     
     # 这个可以做映射的文件，假如有666，那么文件会被挂载到/opt/ml/input/data/666/
     est.fit({"train": train})
-
+    
+    
 train = 's3://sagemaker-ca-central-1-337058716437/script-mode-container-2/train/'
 script = 'train.py'
 
