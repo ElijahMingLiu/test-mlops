@@ -77,7 +77,7 @@ def train_my_xgboost(train, code_files, script, hyperparameters={}, role=None, p
     est.fit({"train": train})
     
     
-train = 's3://sagemaker-ca-central-1-337058716437/script-mode-container-2/train/'
+train = 's3://ca-central-sagemaker-test/iris-data/'
 script = 'train.py'
 
 role = 'arn:aws:iam::337058716437:role/SageMaker-Execution'
