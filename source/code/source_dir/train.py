@@ -14,7 +14,6 @@ def train():
     print('Finally!! Run!!!')
     # df = pd.read_csv('/opt/ml/input/data/666/dummy.csv')
     # print(df)
-
+    print(os.environ["SM_MODEL_DIR"])
 if __name__ == "__main__":
     train()
-    print_files_in_path(os.environ["SM_CHANNEL_TRAIN"])
