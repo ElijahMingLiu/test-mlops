@@ -1,48 +1,64 @@
-import os
 import boto3
-import wget
+import sagemaker
+from sagemaker import get_execution_role
 import json
-import sys
-import numpy as np
-from cv2 import imread, resize, IMREAD_GRAYSCALE
+import tarfile
+import os
+from time import gmtime, strftime
 
 
-stack_name = sys.argv[1]
-commit_id = sys.argv[2]
-endpoint_name = f"{stack_name}-{commit_id[:7]}"
+print('***********************\n' * 3)
+print('Deploying!!!')
+#endpoint名字
+endpoint_name = 'test-mlops2' + strftime("%Y-%m-%d-%H-%M-%S", gmtime())
+#模型列表，注意最后结尾带上 /
+model_url = 's3://sagemaker-ca-central-1-337058716437/test-mlops-2021-08-12-06-13-33-859/output/'
+container = '337058716437.dkr.ecr.ca-central-1.amazonaws.com/xgboost-multi'
+role = 'arn:aws:iam::337058716437:role/SageMaker-Execution'
 
-runtime = boto3.client("runtime.sagemaker")
+sm_client = boto3.client(service_name='sagemaker')
+runtime_sm_client = boto3.client(service_name='sagemaker-runtime')
 
-IMAGE_URL = "https://aws-mlops-samples.s3-eu-west-1.amazonaws.com/mnist_output_10.png"
-test_file = "test.jpg"
-wget.download(
-    IMAGE_URL,
-    test_file,
-)
+container = {
+    'Image': container,
+    'ModelDataUrl': model_url,
+    'Mode': 'MultiModel'
+}
 
-image = imread(test_file, IMREAD_GRAYSCALE)
-image = resize(image, (28, 28))
-image = image.astype("float32")
-image = image.reshape(1, 1, 28, 28)
+model_name = endpoint_name
 
-payload = json.dumps(image.tolist())
-response = runtime.invoke_endpoint(
-    EndpointName=endpoint_name, Body=payload, ContentType="application/json"
-)
+create_model_response = sm_client.create_model(
+    ModelName = model_name,
+    ExecutionRoleArn = role,
+    Containers = [container])
 
-result = response["Body"].read()
-result = json.loads(result.decode("utf-8"))
-print(f"Probabilities: {result}")
+endpoint_config_name = model_name
+print('Endpoint config name: ' + endpoint_config_name)
 
-np_result = np.asarray(result)
-prediction = np_result.argmax(axis=1)[0]
-print(f"This is your number: {prediction}")
+create_endpoint_config_response = sm_client.create_endpoint_config(
+    EndpointConfigName = endpoint_config_name,
+    ProductionVariants=[{
+        'InstanceType': 'ml.m5.large',
+        'InitialInstanceCount': 2,
+        'InitialVariantWeight': 1,
+        'ModelName': model_name,
+        'VariantName': 'AllTraffic'}])
 
-if prediction != 5:
-    print("Model prediction failed.")
-    sys.exit(1)
+print('Endpoint name: ' + endpoint_name)
 
-if os.path.exists(test_file):
-    os.remove(test_file)
-else:
-    print("The file does not exist")
+create_endpoint_response = sm_client.create_endpoint(
+    EndpointName=endpoint_name,
+    EndpointConfigName=endpoint_config_name)
+
+print('Endpoint Arn: ' + create_endpoint_response['EndpointArn'])
+
+
+resp = sm_client.describe_endpoint(EndpointName=endpoint_name)
+status = resp['EndpointStatus']
+print("Endpoint Status: " + status)
+
+print('Waiting for {} endpoint to be in service...'.format(endpoint_name))
+waiter = sm_client.get_waiter('endpoint_in_service')
+waiter.wait(EndpointName=endpoint_name)
+
+print('Deployment finished! Endpoint name:{}'.format(endpoint_name))

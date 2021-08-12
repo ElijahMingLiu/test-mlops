@@ -109,8 +109,7 @@ print("Training Finished!!")
 # Deployment
 
 
-print('***********************\n' * 3)
-print('Deploying!!!')
+'''
 #endpoint名字
 endpoint_name = 'test-mlops2' + strftime("%Y-%m-%d-%H-%M-%S", gmtime())
 #模型列表，注意最后结尾带上 /
@@ -163,4 +162,4 @@ print('Waiting for {} endpoint to be in service...'.format(endpoint_name))
 waiter = sm_client.get_waiter('endpoint_in_service')
 waiter.wait(EndpointName=endpoint_name)
 
-print('Deployment finished! Endpoint name:{}'.format(endpoint_name))
+'''
