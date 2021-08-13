@@ -76,7 +76,7 @@ def train_my_xgboost(train, code_files, script, hyperparameters={}, role=None, p
     # 这个可以做映射的文件，假如有666，那么文件会被挂载到/opt/ml/input/data/666/
     est.fit({"train": train})
     
-    
+print(123)
 train = 's3://ca-central-sagemaker-test/iris-data/'
 script = 'train.py'
 
